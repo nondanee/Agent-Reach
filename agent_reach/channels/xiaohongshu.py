@@ -8,7 +8,7 @@ Requires: mcporter CLI + xiaohongshu MCP server running
 import json
 import shutil
 import subprocess
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, quote
 from .base import Channel, ReadResult, SearchResult
 from typing import List, Optional
 
@@ -92,9 +92,15 @@ class XiaoHongShuChannel(Channel):
                 content=f"⚠️ 无法从 URL 提取笔记 ID: {url}",
                 url=url, platform="xiaohongshu",
             )
+        
+        query_params = parse_qs(urlparse(url).query)
+        xsec_token = query_params.get('xsec_token', [''])[0]
 
-        # Step 1: get xsec_token from feeds
-        xsec_token = self._find_token(note_id)
+        # print(note_id, xsec_token)
+
+        if not xsec_token:
+            # Step 1: get xsec_token from feeds
+            xsec_token = self._find_token(note_id)
 
         if not xsec_token:
             return ReadResult(
@@ -138,7 +144,8 @@ class XiaoHongShuChannel(Channel):
                 interact = card.get("interactInfo", {})
                 results.append(SearchResult(
                     title=card.get("displayTitle", ""),
-                    url=f"https://www.xiaohongshu.com/explore/{item.get('id', '')}",
+                    # url=f"https://www.xiaohongshu.com/explore/{item.get('id', '')}",
+                    url=f"https://www.xiaohongshu.com/explore/{item.get('id', '')}?xsec_token={quote(item.get('xsecToken', ''))}",
                     snippet=f"👤 {user.get('nickname', '')} · ❤ {interact.get('likedCount', '0')}",
                     score=0,
                 ))
